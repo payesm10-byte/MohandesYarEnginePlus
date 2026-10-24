@@ -129,18 +129,29 @@ private class FirebaseAuthBridge {
         ).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 sendAuthResult(callbackName, true, "ورود موفق بود.");
-            } else {
-                sendAuthResult(
-                    callbackName,
-                    false,
-                   "خطای Firebase: " +
-(task.getException() != null
-    ? task.getException().getMessage()
-    : "خطای نامشخص")
-                );
-            }
-        });
+           } else {
+    Exception error = task.getException();
+    String errorType = error == null
+            ? ""
+            : error.getClass().getSimpleName();
+
+    String message;
+
+    if (errorType.equals("FirebaseAuthInvalidCredentialsException")) {
+        message = "ایمیل یا رمز عبور صحیح نیست.";
+    } else if (errorType.equals("FirebaseAuthInvalidUserException")) {
+        message = "حساب کاربری معتبر نیست یا غیرفعال شده است.";
+    } else if (errorType.equals("FirebaseNetworkException")) {
+        message = "اتصال اینترنت را بررسی کنید.";
+    } else if (errorType.equals("FirebaseTooManyRequestsException")) {
+        message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
+    } else {
+        message = "خطای ورود: "
+                + (error == null ? "نامشخص" : errorType);
     }
+
+    sendAuthResult(callbackName, false, message);
+}
 
     private void sendAuthResult(
         String callbackName, boolean success, String message
