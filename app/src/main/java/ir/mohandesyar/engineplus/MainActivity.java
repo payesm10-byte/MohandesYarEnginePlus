@@ -180,7 +180,6 @@ private class FirebaseAuthBridge {
         } catch (Exception ignored) {
         }
     }
-}
 
     private class NativeStorageBridge {
         private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
