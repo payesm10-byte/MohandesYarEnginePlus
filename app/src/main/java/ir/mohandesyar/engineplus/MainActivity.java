@@ -129,10 +129,23 @@ private class FirebaseAuthBridge {
                     if (task.isSuccessful()) {
                         sendAuthResult(callbackName, true, "ورود موفق بود.");
                     } else {
-                        Exception error = task.getException();
-                        String errorType = error == null
-                                ? ""
-                                : error.getClass().getSimpleName();
+                       Exception error = task.getException();
+
+String errorType = "unknown";
+
+if (error instanceof com.google.firebase.auth.FirebaseAuthException) {
+    errorType =
+        ((com.google.firebase.auth.FirebaseAuthException) error)
+        .getErrorCode();
+} else if (error != null) {
+    errorType = error.getClass().getName();
+}
+
+android.util.Log.e(
+    "MohandesYarAuth",
+    "Firebase login failed: " + errorType,
+    error
+);
 
                         String message;
 
