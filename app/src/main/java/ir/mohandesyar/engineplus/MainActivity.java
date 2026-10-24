@@ -166,7 +166,14 @@ android.util.Log.e(
                                     + (error == null ? "نامشخص" : errorType);
                         }
 
-                        sendAuthResult(callbackName, false, message);
+                        sendAuthResult(
+    callbackName,
+    false,
+    "خطای ورود (" + errorType + "): " +
+    (error == null || error.getMessage() == null
+        ? "جزئیات خطا موجود نیست"
+        : error.getMessage())
+);
                     }
                 });
     }
