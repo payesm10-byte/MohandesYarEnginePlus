@@ -1,3 +1,4 @@
+
 plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
@@ -5,11 +6,21 @@ plugins {
 
 dependencies {
     implementation 'androidx.core:core:1.15.0'
+
+    // Firebase: نسخه‌های هماهنگ
+    implementation platform('com.google.firebase:firebase-bom:35.0.2')
+
+    // ورود و ثبت‌نام کاربران
+    implementation 'com.google.firebase:firebase-auth'
+
+    // پایگاه داده ابری
+    implementation 'com.google.firebase:firebase-firestore'
 }
 
 android {
     namespace 'ir.mohandesyar.engineplus'
     compileSdk 35
+
     defaultConfig {
         applicationId 'ir.mohandesyar.engineplus'
         minSdk 23
