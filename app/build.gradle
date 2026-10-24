@@ -1,5 +1,9 @@
 plugins { id 'com.android.application' }
 
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+}
+
 android {
     namespace 'ir.mohandesyar.engineplus'
     compileSdk 35
@@ -7,7 +11,11 @@ android {
         applicationId 'ir.mohandesyar.engineplus'
         minSdk 23
         targetSdk 35
-        versionCode 28
-        versionName "2.8.0"
+        versionCode 29
+        versionName "3.6.0"
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 }

@@ -19,6 +19,13 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
 import android.net.Uri;
+import android.provider.MediaStore;
+import android.os.Environment;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import android.widget.Toast;
 import org.json.JSONObject;
 
@@ -26,6 +33,7 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private static final int FILE_CHOOSER_REQUEST = 701;
+    private Uri pendingCameraUri;
     private static final int LOCATION_PERMISSION_REQUEST = 702;
     private static final int CAMERA_PERMISSION_REQUEST = 703;
     private PermissionRequest pendingCameraRequest;
@@ -64,14 +72,89 @@ public class MainActivity extends Activity {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
-                Intent intent = params.createIntent();
-                try { startActivityForResult(intent, FILE_CHOOSER_REQUEST); }
-                catch (Exception e) { fileCallback = null; return false; }
+                pendingCameraUri = null;
+                Intent picker = params.createIntent();
+                try {
+                    String[] types = params.getAcceptTypes();
+                    boolean wantsImage = false;
+                    if (types != null) for (String type : types) if (type != null && (type.contains("image") || type.equals("*/*"))) wantsImage = true;
+                    if (wantsImage && params.isCaptureEnabled()) {
+                        Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        if (camera.resolveActivity(getPackageManager()) != null) {
+                            File dir = new File(getCacheDir(), "camera");
+                            if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Cannot create camera cache");
+                            File photo = new File(dir, "capture_" + System.currentTimeMillis() + ".jpg");
+                            pendingCameraUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", photo);
+                            camera.putExtra(MediaStore.EXTRA_OUTPUT, pendingCameraUri);
+                            camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            Intent chooser = Intent.createChooser(picker, "انتخاب تصویر از دوربین یا گالری");
+                            chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
+                            startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
+                        } else startActivityForResult(picker, FILE_CHOOSER_REQUEST);
+                    } else {
+                        startActivityForResult(picker, FILE_CHOOSER_REQUEST);
+                    }
+                } catch (Exception e) {
+                    if (fileCallback != null) fileCallback.onReceiveValue(null);
+                    fileCallback = null;
+                    pendingCameraUri = null;
+                    Toast.makeText(MainActivity.this, "باز کردن دوربین یا انتخاب فایل ممکن نشد.", Toast.LENGTH_LONG).show();
+                    return true;
+                }
                 return true;
             }
         });
         webView.addJavascriptInterface(new GeoBridge(), "AndroidGeo");
+        webView.addJavascriptInterface(new ShareBridge(), "AndroidShare");
+        webView.addJavascriptInterface(new NativeStorageBridge(), "AndroidStorage");
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    private class NativeStorageBridge {
+        private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
+
+        @JavascriptInterface public String loadState() {
+            File file = stateFile();
+            if (!file.exists()) return "";
+            try (FileInputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+                return out.toString("UTF-8");
+            } catch (Exception e) { return ""; }
+        }
+
+        @JavascriptInterface public boolean saveState(String json) {
+            if (json == null || json.length() > 40 * 1024 * 1024) return false;
+            File target = stateFile();
+            File temp = new File(getFilesDir(), "mohandesyar_state.tmp");
+            try (FileOutputStream out = new FileOutputStream(temp)) {
+                out.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                out.flush();
+                out.getFD().sync();
+                if (target.exists() && !target.delete()) return false;
+                return temp.renameTo(target);
+            } catch (Exception e) {
+                if (temp.exists()) temp.delete();
+                return false;
+            }
+        }
+    }
+
+    private class ShareBridge {
+        @JavascriptInterface public void shareText(String title, String text) {
+            runOnUiThread(() -> {
+                if (text == null || text.trim().isEmpty()) {
+                    Toast.makeText(MainActivity.this, "متنی برای اشتراک‌گذاری وجود ندارد.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_SUBJECT, title == null ? "گزارش مهندس‌یار" : title);
+                send.putExtra(Intent.EXTRA_TEXT, text);
+                startActivity(Intent.createChooser(send, "اشتراک‌گذاری گزارش مهندس‌یار"));
+            });
+        }
     }
 
     private class GeoBridge {
@@ -157,13 +240,26 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == FILE_CHOOSER_REQUEST && fileCallback != null) {
-            Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            Uri[] results = null;
+            if (resultCode == Activity.RESULT_OK && data == null && pendingCameraUri != null) {
+                results = new Uri[]{pendingCameraUri};
+            } else if (resultCode == Activity.RESULT_OK && data != null) {
+                results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            }
             fileCallback.onReceiveValue(results);
             fileCallback = null;
+            pendingCameraUri = null;
         }
     }
 
+    private void finishBackNavigation() { super.onBackPressed(); }
+
     @Override public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack(); else super.onBackPressed();
+        if (webView == null) { super.onBackPressed(); return; }
+        webView.evaluateJavascript("(function(){try{return !!(window.__handleAndroidBack && window.__handleAndroidBack());}catch(e){return false;}})()", value -> {
+            if ("true".equals(value)) return;
+            if (webView != null && webView.canGoBack()) webView.goBack();
+            else finishBackNavigation();
+        });
     }
 }
