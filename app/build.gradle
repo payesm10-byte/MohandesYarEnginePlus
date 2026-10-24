@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId 'ir.mohandesyar.engineplus'
-        minSdk 23
+        minSdk 24
         targetSdk 35
         versionCode 29
         versionName "3.6.0"
