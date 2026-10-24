@@ -133,7 +133,10 @@ private class FirebaseAuthBridge {
                 sendAuthResult(
                     callbackName,
                     false,
-                    "ورود ناموفق بود؛ ایمیل و رمز عبور را بررسی کنید."
+                   "خطای Firebase: " +
+(task.getException() != null
+    ? task.getException().getMessage()
+    : "خطای نامشخص")
                 );
             }
         });
