@@ -28,9 +28,10 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
 import android.widget.Toast;
 import org.json.JSONObject;
-
+import com.google.firebase.auth.FirebaseAuth;
 public class MainActivity extends Activity {
     private WebView webView;
+    private FirebaseAuth firebaseAuth;
     private ValueCallback<Uri[]> fileCallback;
     private static final int FILE_CHOOSER_REQUEST = 701;
     private Uri pendingCameraUri;
@@ -42,6 +43,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        firebaseAuth = FirebaseAuth.getInstance();
         webView = new WebView(this);
         setContentView(webView);
         WebSettings settings = webView.getSettings();
@@ -107,8 +109,64 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new GeoBridge(), "AndroidGeo");
         webView.addJavascriptInterface(new ShareBridge(), "AndroidShare");
         webView.addJavascriptInterface(new NativeStorageBridge(), "AndroidStorage");
+        webView.addJavascriptInterface(new FirebaseAuthBridge(), "AndroidAuth");
         webView.loadUrl("file:///android_asset/index.html");
     }
+
+private class FirebaseAuthBridge {
+
+    @JavascriptInterface
+    public void login(String email, String password, String callbackName) {
+        if (email == null || password == null ||
+            callbackName == null ||
+            !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
+            sendAuthResult(callbackName, false, "اطلاعات ورود نامعتبر است.");
+            return;
+        }
+
+        firebaseAuth.signInWithEmailAndPassword(
+            email.trim(), password
+        ).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                sendAuthResult(callbackName, true, "ورود موفق بود.");
+            } else {
+                sendAuthResult(
+                    callbackName,
+                    false,
+                    "ورود ناموفق بود؛ ایمیل و رمز عبور را بررسی کنید."
+                );
+            }
+        });
+    }
+
+    private void sendAuthResult(
+        String callbackName, boolean success, String message
+    ) {
+        if (callbackName == null ||
+            !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
+            return;
+        }
+
+        try {
+            JSONObject result = new JSONObject();
+            result.put("success", success);
+            result.put("message", message);
+
+            String script =
+                "if(typeof window[" + JSONObject.quote(callbackName) +
+                "] === 'function') window[" +
+                JSONObject.quote(callbackName) + "](" +
+                JSONObject.quote(result.toString()) + ");";
+
+            runOnUiThread(() -> {
+                if (webView != null) {
+                    webView.evaluateJavascript(script, null);
+                }
+            });
+        } catch (Exception ignored) {
+        }
+    }
+}
 
     private class NativeStorageBridge {
         private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
