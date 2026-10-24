@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "471919277084",
+    "project_id": "mohandesyar-engineplus",
+    "storage_bucket": "mohandesyar-engineplus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:471919277084:android:0396eb46518f55df609bd9",
+        "android_client_info": {
+          "package_name": "ir.mohandesyar.engineplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBwch6LKz7RxlO5a6wOA8FJINcSmw_WJg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
