@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'ir.mohandesyar.engineplus'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'ir.mohandesyar.engineplus'
+        minSdk 23
+        targetSdk 35
+        versionCode 28
+        versionName "2.8.0"
+    }
+}
