@@ -118,46 +118,47 @@ private class FirebaseAuthBridge {
     @JavascriptInterface
     public void login(String email, String password, String callbackName) {
         if (email == null || password == null ||
-            callbackName == null ||
-            !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
+                callbackName == null ||
+                !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
             sendAuthResult(callbackName, false, "اطلاعات ورود نامعتبر است.");
             return;
         }
 
-        firebaseAuth.signInWithEmailAndPassword(
-            email.trim(), password
-        ).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                sendAuthResult(callbackName, true, "ورود موفق بود.");
-           } else {
-    Exception error = task.getException();
-    String errorType = error == null
-            ? ""
-            : error.getClass().getSimpleName();
+        firebaseAuth.signInWithEmailAndPassword(email.trim(), password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        sendAuthResult(callbackName, true, "ورود موفق بود.");
+                    } else {
+                        Exception error = task.getException();
+                        String errorType = error == null
+                                ? ""
+                                : error.getClass().getSimpleName();
 
-    String message;
+                        String message;
 
-    if (errorType.equals("FirebaseAuthInvalidCredentialsException")) {
-        message = "ایمیل یا رمز عبور صحیح نیست.";
-    } else if (errorType.equals("FirebaseAuthInvalidUserException")) {
-        message = "حساب کاربری معتبر نیست یا غیرفعال شده است.";
-    } else if (errorType.equals("FirebaseNetworkException")) {
-        message = "اتصال اینترنت را بررسی کنید.";
-    } else if (errorType.equals("FirebaseTooManyRequestsException")) {
-        message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
-    } else {
-        message = "خطای ورود: "
-                + (error == null ? "نامشخص" : errorType);
+                        if (errorType.equals("FirebaseAuthInvalidCredentialsException")) {
+                            message = "ایمیل یا رمز عبور صحیح نیست.";
+                        } else if (errorType.equals("FirebaseAuthInvalidUserException")) {
+                            message = "حساب کاربری معتبر نیست یا غیرفعال شده است.";
+                        } else if (errorType.equals("FirebaseNetworkException")) {
+                            message = "اتصال اینترنت را بررسی کنید.";
+                        } else if (errorType.equals("FirebaseTooManyRequestsException")) {
+                            message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
+                        } else {
+                            message = "خطای ورود: "
+                                    + (error == null ? "نامشخص" : errorType);
+                        }
+
+                        sendAuthResult(callbackName, false, message);
+                    }
+                });
     }
 
-    sendAuthResult(callbackName, false, message);
-}
-
     private void sendAuthResult(
-        String callbackName, boolean success, String message
-    ) {
+            String callbackName, boolean success, String message) {
+
         if (callbackName == null ||
-            !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
+                !callbackName.matches("[A-Za-z_$][A-Za-z0-9_$]{0,60}")) {
             return;
         }
 
@@ -167,10 +168,10 @@ private class FirebaseAuthBridge {
             result.put("message", message);
 
             String script =
-                "if(typeof window[" + JSONObject.quote(callbackName) +
-                "] === 'function') window[" +
-                JSONObject.quote(callbackName) + "](" +
-                JSONObject.quote(result.toString()) + ");";
+                    "if(typeof window[" + JSONObject.quote(callbackName) +
+                    "] === 'function') window[" +
+                    JSONObject.quote(callbackName) + "](" +
+                    JSONObject.quote(result.toString()) + ");";
 
             runOnUiThread(() -> {
                 if (webView != null) {
@@ -180,7 +181,7 @@ private class FirebaseAuthBridge {
         } catch (Exception ignored) {
         }
     }
-
+}
     private class NativeStorageBridge {
         private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
 
