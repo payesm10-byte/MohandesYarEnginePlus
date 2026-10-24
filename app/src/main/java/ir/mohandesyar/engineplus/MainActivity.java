@@ -140,7 +140,11 @@ if (error instanceof com.google.firebase.auth.FirebaseAuthException) {
 } else if (error != null) {
     errorType = error.getClass().getName();
 }
-
+android.util.Log.e(
+        "MohandesYarAuth",
+        "Firebase login failed: " + errorType,
+        error
+);
 android.util.Log.e(
     "MohandesYarAuth",
     "Firebase login failed: " + errorType,
