@@ -124,48 +124,43 @@ private class FirebaseAuthBridge {
             return;
         }
 
-        firebaseAuth.signInWithEmailAndPassword(email.trim(), password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        sendAuthResult(callbackName, true, "ورود موفق بود.");
-                    } else {
-                       Exception error = task.getException();
-
-String errorType = "unknown";
+        Exception error = task.getException();
+String errorCode = "UNKNOWN";
+String detail = "جزئیات خطا موجود نیست";
 
 if (error instanceof com.google.firebase.auth.FirebaseAuthException) {
-    errorType =
+    errorCode =
         ((com.google.firebase.auth.FirebaseAuthException) error)
         .getErrorCode();
 } else if (error != null) {
-    errorType = error.getClass().getName();
+    errorCode = error.getClass().getSimpleName();
 }
-android.util.Log.e(
-        "MohandesYarAuth",
-        "Firebase login failed: " + errorType,
-        error
-);
+
+if (error != null && error.getMessage() != null) {
+    detail = error.getMessage();
+}
+
 android.util.Log.e(
     "MohandesYarAuth",
-    "Firebase login failed: " + errorType,
+    "Firebase login failed: " + errorCode,
     error
 );
 
-                        String message;
+String message;
 
-                        if (errorType.equals("FirebaseAuthInvalidCredentialsException")) {
-                            message = "ایمیل یا رمز عبور صحیح نیست.";
-                        } else if (errorType.equals("FirebaseAuthInvalidUserException")) {
-                            message = "حساب کاربری معتبر نیست یا غیرفعال شده است.";
-                        } else if (errorType.equals("FirebaseNetworkException")) {
-                            message = "اتصال اینترنت را بررسی کنید.";
-                        } else if (errorType.equals("FirebaseTooManyRequestsException")) {
-                            message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
-                        } else {
-                            message = "خطای ورود: "
-                                    + (error == null ? "نامشخص" : errorType);
-                        }
+if ("ERROR_INVALID_CREDENTIAL".equals(errorCode)
+        || "ERROR_WRONG_PASSWORD".equals(errorCode)
+        || "ERROR_USER_NOT_FOUND".equals(errorCode)) {
+    message = "ایمیل یا رمز عبور صحیح نیست.";
+} else if ("ERROR_NETWORK_REQUEST_FAILED".equals(errorCode)) {
+    message = "اتصال اینترنت را بررسی کنید.";
+} else if ("ERROR_TOO_MANY_REQUESTS".equals(errorCode)) {
+    message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
+} else {
+    message = "خطای ورود (" + errorCode + "): " + detail;
+}
 
+sendAuthResult(callbackName, false, message);
                         sendAuthResult(
     callbackName,
     false,
