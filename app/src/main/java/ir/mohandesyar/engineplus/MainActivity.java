@@ -11,6 +11,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.util.AtomicFile;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.PermissionRequest;
@@ -202,28 +203,32 @@ private class FirebaseAuthBridge {
         private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
 
         @JavascriptInterface public String loadState() {
-            File file = stateFile();
-            if (!file.exists()) return "";
-            try (FileInputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            AtomicFile atomicFile = new AtomicFile(stateFile());
+            try (FileInputStream in = atomicFile.openRead(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 byte[] buffer = new byte[8192];
                 int count;
                 while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
                 return out.toString("UTF-8");
-            } catch (Exception e) { return ""; }
+            } catch (Exception e) {
+                android.util.Log.e("MohandesYarStorage", "خواندن فایل ذخیره‌سازی ناموفق بود", e);
+                return "";
+            }
         }
 
         @JavascriptInterface public boolean saveState(String json) {
             if (json == null || json.length() > 40 * 1024 * 1024) return false;
-            File target = stateFile();
-            File temp = new File(getFilesDir(), "mohandesyar_state.tmp");
-            try (FileOutputStream out = new FileOutputStream(temp)) {
+            AtomicFile atomicFile = new AtomicFile(stateFile());
+            FileOutputStream out = null;
+            try {
+                out = atomicFile.startWrite();
                 out.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 out.flush();
                 out.getFD().sync();
-                if (target.exists() && !target.delete()) return false;
-                return temp.renameTo(target);
+                atomicFile.finishWrite(out);
+                return true;
             } catch (Exception e) {
-                if (temp.exists()) temp.delete();
+                if (out != null) atomicFile.failWrite(out);
+                android.util.Log.e("MohandesYarStorage", "ذخیره فایل ناموفق بود", e);
                 return false;
             }
         }
