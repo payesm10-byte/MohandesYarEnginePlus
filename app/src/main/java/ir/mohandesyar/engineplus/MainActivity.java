@@ -2,6 +2,8 @@ package ir.mohandesyar.engineplus;
 
 import android.Manifest;
 import android.app.Activity;
+import android.print.PrintManager;
+import android.print.PrintAttributes;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -109,6 +111,7 @@ public class MainActivity extends Activity {
         });
         webView.addJavascriptInterface(new GeoBridge(), "AndroidGeo");
         webView.addJavascriptInterface(new ShareBridge(), "AndroidShare");
+        webView.addJavascriptInterface(new PrintBridge(), "AndroidPrint");
         webView.addJavascriptInterface(new NativeStorageBridge(), "AndroidStorage");
         webView.addJavascriptInterface(new FirebaseAuthBridge(), "AndroidAuth");
         webView.loadUrl("file:///android_asset/index.html");
@@ -249,9 +252,39 @@ private class FirebaseAuthBridge {
                     send.putExtra(Intent.EXTRA_TEXT, text);
                     startActivity(Intent.createChooser(send, "اشتراک‌گذاری گزارش مهندس‌یار"));
                 } catch (Exception e) {
-                    android.util.Log.e("MohandesYarShare", "اشتراک‌گذاری ناموفق بود", e);
-                    Toast.makeText(MainActivity.this, "باز کردن برنامه اشتراک‌گذاری ممکن نشد.", Toast.LENGTH_LONG).show();
+                    android.util.Log.e("MohandesYarShare", "بازکردن منوی اشتراک‌گذاری ناموفق بود", e);
+                    Toast.makeText(MainActivity.this, "بازکردن ابزار اشتراک‌گذاری ممکن نشد.", Toast.LENGTH_LONG).show();
                 }
+            });
+        }
+    }
+
+    private class PrintBridge {
+        @JavascriptInterface public void printHtml(String html, String jobName) {
+            if (html == null || html.trim().isEmpty()) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "محتوای چاپ خالی است.", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            runOnUiThread(() -> {
+                WebView printWebView = new WebView(MainActivity.this);
+                printWebView.getSettings().setJavaScriptEnabled(false);
+                printWebView.setWebViewClient(new WebViewClient() {
+                    @Override public void onPageFinished(WebView view, String url) {
+                        super.onPageFinished(view, url);
+                        try {
+                            PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                            if (printManager == null) throw new IllegalStateException("Print service unavailable");
+                            String safeName = (jobName == null || jobName.trim().isEmpty()) ? "MohandesYar-Report" : jobName.trim();
+                            if (Build.VERSION.SDK_INT >= 19) {
+                                printManager.print(safeName, view.createPrintDocumentAdapter(safeName), new PrintAttributes.Builder().build());
+                            }
+                        } catch (Exception e) {
+                            android.util.Log.e("MohandesYarPrint", "ساخت کار چاپ ناموفق بود", e);
+                            Toast.makeText(MainActivity.this, "بازکردن پنجره چاپ ناموفق بود. لطفاً دوباره تلاش کنید.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+                printWebView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
             });
         }
     }
