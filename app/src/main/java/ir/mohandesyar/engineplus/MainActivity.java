@@ -124,52 +124,49 @@ private class FirebaseAuthBridge {
             return;
         }
 
-        Exception error = task.getException();
-String errorCode = "UNKNOWN";
-String detail = "جزئیات خطا موجود نیست";
-
-if (error instanceof com.google.firebase.auth.FirebaseAuthException) {
-    errorCode =
-        ((com.google.firebase.auth.FirebaseAuthException) error)
-        .getErrorCode();
-} else if (error != null) {
-    errorCode = error.getClass().getSimpleName();
-}
-
-if (error != null && error.getMessage() != null) {
-    detail = error.getMessage();
-}
-
-android.util.Log.e(
-    "MohandesYarAuth",
-    "Firebase login failed: " + errorCode,
-    error
-);
-
-String message;
-
-if ("ERROR_INVALID_CREDENTIAL".equals(errorCode)
-        || "ERROR_WRONG_PASSWORD".equals(errorCode)
-        || "ERROR_USER_NOT_FOUND".equals(errorCode)) {
-    message = "ایمیل یا رمز عبور صحیح نیست.";
-} else if ("ERROR_NETWORK_REQUEST_FAILED".equals(errorCode)) {
-    message = "اتصال اینترنت را بررسی کنید.";
-} else if ("ERROR_TOO_MANY_REQUESTS".equals(errorCode)) {
-    message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
-} else {
-    message = "خطای ورود (" + errorCode + "): " + detail;
-}
-
-sendAuthResult(callbackName, false, message);
-                        sendAuthResult(
-    callbackName,
-    false,
-    "خطای ورود (" + errorType + "): " +
-    (error == null || error.getMessage() == null
-        ? "جزئیات خطا موجود نیست"
-        : error.getMessage())
-);
+        firebaseAuth.signInWithEmailAndPassword(email.trim(), password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        sendAuthResult(callbackName, true, "ورود موفق بود.");
+                        return;
                     }
+
+                    Exception error = task.getException();
+                    String errorCode = "UNKNOWN";
+                    String detail = "جزئیات خطا موجود نیست";
+
+                    if (error instanceof com.google.firebase.auth.FirebaseAuthException) {
+                        errorCode = ((com.google.firebase.auth.FirebaseAuthException) error)
+                                .getErrorCode();
+                    } else if (error != null) {
+                        errorCode = error.getClass().getSimpleName();
+                    }
+
+                    if (error != null && error.getMessage() != null) {
+                        detail = error.getMessage();
+                    }
+
+                    android.util.Log.e(
+                            "MohandesYarAuth",
+                            "Firebase login failed: " + errorCode,
+                            error
+                    );
+
+                    String message;
+
+                    if ("ERROR_INVALID_CREDENTIAL".equals(errorCode)
+                            || "ERROR_WRONG_PASSWORD".equals(errorCode)
+                            || "ERROR_USER_NOT_FOUND".equals(errorCode)) {
+                        message = "ایمیل یا رمز عبور صحیح نیست.";
+                    } else if ("ERROR_NETWORK_REQUEST_FAILED".equals(errorCode)) {
+                        message = "اتصال اینترنت را بررسی کنید.";
+                    } else if ("ERROR_TOO_MANY_REQUESTS".equals(errorCode)) {
+                        message = "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.";
+                    } else {
+                        message = "خطای ورود (" + errorCode + "): " + detail;
+                    }
+
+                    sendAuthResult(callbackName, false, message);
                 });
     }
 
@@ -200,7 +197,7 @@ sendAuthResult(callbackName, false, message);
         } catch (Exception ignored) {
         }
     }
-}
+}  
     private class NativeStorageBridge {
         private File stateFile() { return new File(getFilesDir(), "mohandesyar_state.json"); }
 
