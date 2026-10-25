@@ -241,11 +241,17 @@ private class FirebaseAuthBridge {
                     Toast.makeText(MainActivity.this, "متنی برای اشتراک‌گذاری وجود ندارد.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Intent send = new Intent(Intent.ACTION_SEND);
-                send.setType("text/plain");
-                send.putExtra(Intent.EXTRA_SUBJECT, title == null ? "گزارش مهندس‌یار" : title);
-                send.putExtra(Intent.EXTRA_TEXT, text);
-                startActivity(Intent.createChooser(send, "اشتراک‌گذاری گزارش مهندس‌یار"));
+                try {
+                    Intent send = new Intent(Intent.ACTION_SEND);
+                    send.setType("text/plain");
+                    send.putExtra(Intent.EXTRA_SUBJECT, title == null ? "گزارش مهندس‌یار" : title);
+                    send.putExtra(Intent.EXTRA_TITLE, title == null ? "گزارش مهندس‌یار" : title);
+                    send.putExtra(Intent.EXTRA_TEXT, text);
+                    startActivity(Intent.createChooser(send, "اشتراک‌گذاری گزارش مهندس‌یار"));
+                } catch (Exception e) {
+                    android.util.Log.e("MohandesYarShare", "اشتراک‌گذاری ناموفق بود", e);
+                    Toast.makeText(MainActivity.this, "باز کردن برنامه اشتراک‌گذاری ممکن نشد.", Toast.LENGTH_LONG).show();
+                }
             });
         }
     }
